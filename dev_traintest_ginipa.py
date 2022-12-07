@@ -125,8 +125,9 @@ def eval_list_wrapper(vol_list, nclass, model, label_name):
 
     return error_dict, dsc_table, domain_names
 
-@ex.automain
+@ex.main
 def main(_run, _config, _log):
+
     # configs for sacred
     if _run.observers:
         os.makedirs(f'{_run.observers[0].dir}/snapshots', exist_ok=True)
@@ -148,6 +149,7 @@ def main(_run, _config, _log):
 
     if opt.data_name == 'ABDOMINAL':
         import dataloaders.AbdominalDataset as ABD
+        ABD.BASEDIR = opt.base_dir
         if not isinstance(opt.tr_domain, list):
             opt.tr_domain = [opt.tr_domain]
             opt.te_domain = [opt.te_domain]
@@ -314,3 +316,46 @@ def main(_run, _config, _log):
               (epoch, opt.niter + opt.niter_decay, time.time() - epoch_start_time))
         model.update_learning_rate()
 
+if __name__ == "__main__":
+    arg_dict = dict(
+        exp_type='ginipa',
+        load_dir='E3_sourceMR_efficient_b2_unet',
+        nThreads=8,
+        model='efficient_b2_unet',
+
+        print_freq=50000,     # visualizations
+        validation_freq=50000,
+        infer_epoch_freq=50,
+
+        batchSize=20,
+        gin_nlayer=4,
+        gin_n_interm_ch=2,
+
+        lambda_wce=1.0, # actually we are not using weights so it is in effect plain ce
+        lambda_dice=1.0,
+        lambda_consist=10.0, # Xu et al.
+
+        save_epoch_freq=1000,
+        save_prediction=False, # save prediction results or not
+
+        data_name="ABDOMINAL",
+        niter=50, # no lr decay for the first 50 epoches
+        niter_decay=1950, # lr decay to zero even if we are using adam
+        fineSize=192,
+
+        optimizer='adam',
+        lr=0.0003,
+        adam_weight_decay=0.00003,
+        te_domain="targetCT",
+        tr_domain="sourceMR",
+
+        # blender config
+        blend_grid_size=24, # 24 * 2 = 48, 1/4 of 192
+
+        # validation fold
+        nclass=5,
+        consist_type='kld', # KL term
+        base_dir='./data/E3'
+    )
+
+    r = ex.run(config_updates=arg_dict)

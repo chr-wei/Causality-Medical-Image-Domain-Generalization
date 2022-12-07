@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "causality-medical-image-domain-generalization"
+version = "0.1.0"
+description = ""
+authors = ["Christian Weihsbach <christian.weihsbach@uni-luebeck.de>"]
+readme = "README.md"
+packages = [{include = "causality_medical_image_domain_generalization"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+jupyter = "^1.0.0"
+nibabel = "^4.0.2"
+notebook = "^6.5.2"
+numpy = "^1.23.5"
+opencv-python = "^4.6.0.66"
+pillow = "^9.3.0"
+sacred = "^0.8.2"
+scikit-image = "^0.19.3"
+scipy = "^1.9.3"
+simpleitk = "^2.2.0"
+tensorboardx = "^2.5.1"
+torch = "^1.13.0"
+torchfile = "^0.1.0"
+torchvision = "^0.14.0"
+tqdm = "^4.64.1"
+segmentation-models-pytorch = "0.1.3"
+timm = "0.3.2"
+dill = "^0.3.6"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

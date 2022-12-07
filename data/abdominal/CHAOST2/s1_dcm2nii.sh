@@ -15,8 +15,7 @@ fi
 
 for sid in $(ls "$DATAPATH")
 do
-	dcm2nii -o "$DATAPATH/$sid/T2SPIR" "$DATAPATH/$sid/T2SPIR/DICOM_anon";
+	dcm2niix -z y -o "$DATAPATH/$sid/T2SPIR" "$DATAPATH/$sid/T2SPIR/DICOM_anon";
+	echo "$OUTPATH/image_$sid.nii.gz"
 	find "$DATAPATH/$sid/T2SPIR" -name "*.nii.gz" -exec mv {} "$OUTPATH/image_$sid.nii.gz" \;
 done;
-
-

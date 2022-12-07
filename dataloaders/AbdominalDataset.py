@@ -17,7 +17,7 @@ from pdb import set_trace
 
 hostname = platform.node()
 # folder for datasets
-BASEDIR = './data/abdominal/'
+BASEDIR = None
 print(f'Running on machine {hostname}, using dataset from {BASEDIR}')
 LABEL_NAME = ["bg", "liver", "rk", "lk", "spleen"]
 
@@ -269,4 +269,3 @@ def get_test_all(modality, norm_func, tile_z_dim = 3, idx_pct = [0.7, 0.1, 0.2])
         extern_norm_fn = norm_func,\
         base_dir = BASEDIR,\
         tile_z_dim = tile_z_dim)
-

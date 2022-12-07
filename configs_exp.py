@@ -50,7 +50,7 @@ def cfg():
     save_prediction = False
 
     ###### training configs ######
-    data_name = 'ABDONINAL' # change to ABDOMINAL or PROSTATE
+    data_name = 'ABDOMINAL' # change to ABDOMINAL or PROSTATE
     tr_domain = 'SABSCT' # for prostate, use A B C D E or F
     te_domain = 'CHAOST2'
     exclu_domain = None # only for prostate for 1vs5 experiments, will override te_domain
@@ -97,6 +97,7 @@ def cfg():
 
     # specific for augmentation strength. Use a rather strong photometric baseline to ensure fairness
     aug_mode = 'strongbright'
+    base_dir = './data/abdominal'
 
 @ex.config_hook
 def add_observer(config, command_name, logger):
