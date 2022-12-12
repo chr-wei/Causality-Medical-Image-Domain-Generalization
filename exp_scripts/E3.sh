@@ -23,7 +23,7 @@ SAVE_EPOCH=1000
 SAVE_PRED=False # save prediction results or not
 
 DATASET='ABDOMINAL'
-BASEDIR='/shared/CIMDG/Causality-Medical-Image-Domain-Generalization/data/E3/'
+BASEDIR='./data/E3/'
 CHECKPOINTS_DIR="./my_exps/${DATASET}"
 NITER=50 # no lr decay for the first 50 epoches
 NITER_DECAY=1950 # lr decay to zero even if we are using adam

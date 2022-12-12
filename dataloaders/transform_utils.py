@@ -11,7 +11,7 @@ import math
 
 
 my_augv = {
-'flip'      : { 'v':False, 'h':False, 't': False, 'p':0.25 },
+'flip'      : { 'v':True, 'h':True, 't': False, 'p':0.25 },
 'affine'    : {
   'rotate':20,
   'shift':(15,15),
@@ -120,6 +120,52 @@ def get_intensity_transformer(aug):
     return compile_transform
 
 
+def get_test_intensity_transformer(aug):
+
+    def gamma_tansform(img):
+        gamma_range = aug['aug']['gamma_range']
+        if isinstance(gamma_range, tuple):
+            gamma = 0.5 * (gamma_range[1] - gamma_range[0]) + gamma_range[0]
+            cmin = img.min()
+            irange = (img.max() - cmin + 1e-5)
+
+            img = img - cmin + 1e-5
+            img = irange * np.power(img * 1.0 / irange,  gamma)
+            img = img + cmin
+
+        elif gamma_range == False:
+            pass
+        else:
+            raise ValueError("Cannot identify gamma transform range {}".format(gamma_range))
+        return img
+
+    def brightness_contrast(img):
+        '''
+        Chaitanya,K. et al. Semi-Supervised and Task-Driven data augmentation,864in: International Conference on Information Processing in Medical Imaging,865Springer. pp. 29–41.
+        '''
+        cmin, cmax = aug['aug']['bright_contrast']['contrast']
+        bmin, bmax = aug['aug']['bright_contrast']['bright']
+        c = 0.5 * (cmax - cmin) + cmin
+        b = 0.5 * (bmax - bmin) + bmin
+        img_mean = img.mean()
+        img = (img - img_mean) * c + img_mean + b
+        return img
+
+    def compile_transform(img):
+        # bright contrast
+        if 'bright_contrast' in aug['aug'].keys():
+            img = brightness_contrast(img)
+
+        # gamma
+        if 'gamma_range' in aug['aug'].keys():
+            img = gamma_tansform(img)
+
+        return img
+
+    return compile_transform
+
+
+
 def transform_with_label(aug, add_pseudolabel = False):
     """
     Doing image geometric transform
@@ -156,14 +202,47 @@ def transform_with_label(aug, add_pseudolabel = False):
             t_img = comp[..., 0 : c_img ]
 
         # intensity transform
-        t_img = intensity_tfx(t_img)
+        t_img_i = intensity_tfx(t_img)
 
         if use_onehot is True:
             t_label = t_label_h
         else:
             t_label = np.expand_dims(np.argmax(t_label_h, axis = -1), -1)
-        return t_img, t_label
+        return t_img_i, t_label
 
     return transform
 
 
+def transform_ts_mid_indtensity(aug):
+    """
+    Doing image geometric transform
+    Proposed image to have the following configurations
+    [H x W x C + CL]
+    Where CL is the number of channels for the label. It is NOT a one-hot thing
+    """
+
+    intensity_tfx = get_test_intensity_transformer(aug)
+
+    def transform(comp, c_label, c_img, nclass, is_train, use_onehot = False):
+        """
+        Args
+            comp:               a numpy array with shape [H x W x C + c_label]
+            c_label:            number of channels for a compact label. Note that the current version only supports 1 slice (H x W x 1)
+            nc_onehot:          -1 for not using one-hot representation of mask. otherwise, specify number of classes in the label
+            is_train:           whether this is the training set or not. If not, do not perform the geometric transform
+        """
+        comp = copy.deepcopy(comp)
+        t_img = comp[..., 0 : c_img ]
+        # intensity transform, with mid range gamma, brightness, contrast values
+        t_img_i = intensity_tfx(t_img)
+
+        t_label_h = comp[..., c_img : ]
+        t_label_h = np.rint(t_label_h)
+
+        if use_onehot is True:
+            t_label = t_label_h
+        else:
+            t_label = np.expand_dims(np.argmax(t_label_h, axis = -1), -1)
+        return t_img_i, t_label
+
+    return transform

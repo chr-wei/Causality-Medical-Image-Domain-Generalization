@@ -2,6 +2,9 @@
 import time
 import shutil
 import SimpleITK as sitk
+import os
+from meidic_vtach_utils.run_on_recommended_cuda import get_cuda_environ_vars as get_vars
+os.environ.update(get_vars('*'))
 import torch
 import numpy as np
 import os
@@ -161,7 +164,8 @@ def main(_run, _config, _log):
             test_source_set = test_set
         else:
             test_set        = ABD.get_test_all(modality = opt.te_domain, norm_func = None)
-            test_source_set        = ABD.get_test(modality = opt.tr_domain, norm_func = train_set.normalize_op)
+            test_source_set = ABD.get_test(modality = opt.tr_domain, norm_func = train_set.normalize_op)
+
         label_name          = ABD.LABEL_NAME
 
     elif opt.data_name == 'PROSTATE':
@@ -179,16 +183,20 @@ def main(_run, _config, _log):
         raise NotImplementedError(opt.data_name)
 
     print(f'Using TR domain {opt.tr_domain}; TE domain {opt.te_domain}')
-    train_loader = DataLoader(dataset = train_set, num_workers = opt.nThreads,\
+    train_loader = DataLoader(dataset = train_set, num_workers = 0,\
             batch_size = opt.batchSize, shuffle = True, drop_last = True, worker_init_fn = worker_init_fn, pin_memory = True)
 
-    val_loader = iter(DataLoader(dataset = val_source_set, num_workers = 1,\
-            batch_size = 1, shuffle = True, drop_last = True, pin_memory = True))
+    if len(val_source_set) > 0:
+        val_loader = iter(DataLoader(dataset = val_source_set, num_workers = 0,\
+                batch_size = 1, shuffle = True, drop_last = True, pin_memory = True))
+    else:
+        val_loader = iter(DataLoader(dataset = test_set, num_workers = 0,\
+                batch_size = 1, shuffle = True, drop_last = True, pin_memory = True))
 
-    test_loader = DataLoader(dataset = test_set, num_workers = 1,\
+    test_loader = DataLoader(dataset = test_set, num_workers = 0,\
             batch_size = 1, shuffle = False, pin_memory = True)
 
-    test_src_loader = DataLoader(dataset = test_source_set, num_workers = 1,\
+    test_src_loader = DataLoader(dataset = test_source_set, num_workers = 0,\
             batch_size = 1, shuffle = False, pin_memory = True)
 
     if opt.exp_type == 'gin' or opt.exp_type == 'ginipa':
@@ -209,7 +217,7 @@ def main(_run, _config, _log):
         np.random.seed()
         if opt.phase == 'train':
             for i, train_batch in tqdm(enumerate(train_loader), total = train_loader.dataset.size // opt.batchSize - 1):
-
+                val_batch = torch.utils.data.default_collate([test_set[idx] for idx in range(228)])
                 iter_start_time = time.time()
                 if total_steps % opt.print_freq == 0:
                     t_data = iter_start_time - iter_data_time
@@ -230,7 +238,7 @@ def main(_run, _config, _log):
                 ## display training losses
                 if total_steps % opt.display_freq == 0:
                     tr_viz = model.get_current_visuals_tr()
-                    model.plot_image_in_tb(tb_writer, tr_viz)
+                    # model.plot_image_in_tb(tb_writer, tr_viz)
 
                 if total_steps % opt.print_freq == 0:
                     tr_error = model.get_current_errors_tr()
@@ -240,24 +248,25 @@ def main(_run, _config, _log):
                 ## run and display validation losses
                 if total_steps % opt.validation_freq == 0:
                     with torch.no_grad():
-                        try:
-                            val_batch = next(val_loader) # FIXME: use a nicer way
-                        except:
-                            val_loader = iter(DataLoader(dataset = val_source_set, num_workers = opt.nThreads,\
-                                    batch_size = 1, drop_last = True, shuffle = True))
-                            val_batch = next(val_loader)
+                        # try:
+                        # val_batch = next(val_loader) # FIXME: use a nicer way
+                        val_batch = torch.utils.data.default_collate([test_set[idx] for idx in range(228)])
+                        # except:
+                        #     val_loader = iter(DataLoader(dataset = val_source_set, num_workers = opt.nThreads,\
+                        #             batch_size = 1, drop_last = True, shuffle = True))
+                        #     val_batch = next(val_loader)
 
                         val_input = {
-                                'img': val_batch["img"],
-                                'lb':  val_batch["lb"]
-                                }
+                            'img': val_batch["img"],
+                            'lb':  val_batch["lb"]
+                            }
                         model.set_input(val_input)
                         model.validate()
                         val_errors = model.get_current_errors_val()
 
                     if total_steps % opt.display_freq == 0:
                         val_viz = model.get_current_visuals_val()
-                        model.plot_image_in_tb(tb_writer, val_viz)
+                        # model.plot_image_in_tb(tb_writer, val_viz)
 
                         val_errors = model.get_current_errors_val()
                         model.track_scalar_in_tb(tb_writer, val_errors, total_steps)
@@ -275,6 +284,7 @@ def main(_run, _config, _log):
                 _run.log_scalar('rawDiceTarget', dsc_table.tolist())
                 _run.log_scalar('meanDiceTarget', error_dict['overall'] )
                 _run.log_scalar('meanDiceAvgTargetDomains', error_dict['overall_by_domain'] ) # for prostate dataset
+                model.track_scalar_in_tb(tb_writer, {'overall_inference_mean_dice': error_dict['overall_by_domain']}, total_steps)
                 for _dm in domain_list:
                     _run.log_scalar(f'meanDice_{_dm}', error_dict[f'domain_{_dm}_overall'])
                     _run.log_scalar(f'rawDice_{_dm}', error_dict[f'domain_{_dm}_table'].tolist())
@@ -318,14 +328,15 @@ def main(_run, _config, _log):
 
 if __name__ == "__main__":
     arg_dict = dict(
+        name='E3',
         exp_type='ginipa',
         load_dir='E3_sourceMR_efficient_b2_unet',
-        nThreads=8,
+        nThreads=1,
         model='efficient_b2_unet',
 
-        print_freq=50000,     # visualizations
-        validation_freq=50000,
-        infer_epoch_freq=50,
+        print_freq=5000,     # visualizations
+        validation_freq=5000,
+        infer_epoch_freq=10,
 
         batchSize=20,
         gin_nlayer=4,

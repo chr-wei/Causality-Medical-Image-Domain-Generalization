@@ -23,10 +23,13 @@ torch = "^1.13.0"
 torchfile = "^0.1.0"
 torchvision = "^0.14.0"
 tqdm = "^4.64.1"
-segmentation-models-pytorch = "0.1.3"
-timm = "0.3.2"
 dill = "^0.3.6"
-
+timm = "^0.4.12"
+segmentation-models-pytorch = "^0.3.1"
+meidic-vtach-utils = { git = "git@github.com:MDL-UzL/meidic_vtach_utils.git" }
+tensorboard = "^2.11.0"
+torch-tb-profiler = "^0.4.0"
+matplotlib = "^3.6.2"
 
 [build-system]
 requires = ["poetry-core"]

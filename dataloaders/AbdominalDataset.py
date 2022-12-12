@@ -189,10 +189,9 @@ class AbdominalDataset(torch_data.Dataset):
     def __getitem__(self, index):
         index = index % len(self.actual_dataset)
         curr_dict = self.actual_dataset[index]
-        if self.is_train is True:
+        if self.transforms:
             comp = np.concatenate( [curr_dict["img"], curr_dict["lb"]], axis = -1 )
-            if self.transforms:
-                img, lb = self.transforms(comp, c_img = 1, c_label = 1, nclass = self.nclass, is_train = self.is_train, use_onehot = False)
+            img, lb = self.transforms(comp, c_img = 1, c_label = 1, nclass = self.nclass, is_train = self.is_train, use_onehot = False)
         else:
             img = curr_dict['img']
             lb = curr_dict['lb']
@@ -232,7 +231,8 @@ class AbdominalDataset(torch_data.Dataset):
         """
         return len(self.actual_dataset)
 
-tr_func  = trans.transform_with_label(trans.tr_aug)
+tr_func = trans.transform_with_label(trans.tr_aug)
+ts_func = trans.transform_ts_mid_indtensity(trans.tr_aug)
 
 def get_training(modality, idx_pct = [0.7, 0.1, 0.2], tile_z_dim = 3):
     return AbdominalDataset(idx_pct = idx_pct,\
@@ -244,7 +244,8 @@ def get_training(modality, idx_pct = [0.7, 0.1, 0.2], tile_z_dim = 3):
         tile_z_dim = tile_z_dim)
 
 def get_validation(modality, norm_func, idx_pct = [0.7, 0.1, 0.2], tile_z_dim = 3):
-     return AbdominalDataset(idx_pct = idx_pct,\
+    # TODO test ts_func as transfroms again
+    return AbdominalDataset(idx_pct = idx_pct,\
         mode = 'val',\
         transforms = None,\
         domains = modality,\
@@ -253,9 +254,10 @@ def get_validation(modality, norm_func, idx_pct = [0.7, 0.1, 0.2], tile_z_dim = 
         tile_z_dim = tile_z_dim)
 
 def get_test(modality, norm_func, tile_z_dim = 3, idx_pct = [0.7, 0.1, 0.2]):
-     return AbdominalDataset(idx_pct = idx_pct,\
+    # TODO test ts_func as transfroms again
+    return AbdominalDataset(idx_pct = idx_pct,\
         mode = 'test',\
-        transforms = None,\
+        transforms = None, \
         domains = modality,\
         extern_norm_fn = norm_func,\
         base_dir = BASEDIR,\
@@ -264,7 +266,7 @@ def get_test(modality, norm_func, tile_z_dim = 3, idx_pct = [0.7, 0.1, 0.2]):
 def get_test_all(modality, norm_func, tile_z_dim = 3, idx_pct = [0.7, 0.1, 0.2]):
      return AbdominalDataset(idx_pct = idx_pct,\
         mode = 'test_all',\
-        transforms = None,\
+        transforms = ts_func,\
         domains = modality,\
         extern_norm_fn = norm_func,\
         base_dir = BASEDIR,\
