@@ -2,6 +2,9 @@
 import time
 import shutil
 import SimpleITK as sitk
+import os
+from meidic_vtach_utils.run_on_recommended_cuda import get_cuda_environ_vars as get_vars
+os.environ.update(get_vars('*'))
 import torch
 import numpy as np
 import os
@@ -182,8 +185,13 @@ def main(_run, _config, _log):
     train_loader = DataLoader(dataset = train_set, num_workers = opt.nThreads,\
             batch_size = opt.batchSize, shuffle = True, drop_last = True, worker_init_fn = worker_init_fn, pin_memory = True)
 
-    val_loader = iter(DataLoader(dataset = val_source_set, num_workers = 1,\
-            batch_size = 1, shuffle = True, drop_last = True, pin_memory = True))
+    if len(val_source_set) > 0:
+        val_loader = iter(DataLoader(dataset = val_source_set, num_workers = 0,\
+                batch_size = 1, shuffle = True, drop_last = True, pin_memory = True))
+    else:
+        val_loader = iter(DataLoader(dataset = test_set, num_workers = 0,\
+                batch_size = 1, shuffle = True, drop_last = True, pin_memory = True))
+
 
     test_loader = DataLoader(dataset = test_set, num_workers = 1,\
             batch_size = 1, shuffle = False, pin_memory = True)
@@ -229,8 +237,9 @@ def main(_run, _config, _log):
 
                 ## display training losses
                 if total_steps % opt.display_freq == 0:
-                    tr_viz = model.get_current_visuals_tr()
-                    model.plot_image_in_tb(tb_writer, tr_viz)
+                    pass
+                    # tr_viz = model.get_current_visuals_tr()
+                    # model.plot_image_in_tb(tb_writer, tr_viz)
 
                 if total_steps % opt.print_freq == 0:
                     tr_error = model.get_current_errors_tr()
@@ -240,12 +249,13 @@ def main(_run, _config, _log):
                 ## run and display validation losses
                 if total_steps % opt.validation_freq == 0:
                     with torch.no_grad():
-                        try:
-                            val_batch = next(val_loader) # FIXME: use a nicer way
-                        except:
-                            val_loader = iter(DataLoader(dataset = val_source_set, num_workers = opt.nThreads,\
-                                    batch_size = 1, drop_last = True, shuffle = True))
-                            val_batch = next(val_loader)
+                        # try:
+                        # val_batch = next(val_loader) # FIXME: use a nicer way
+                        val_batch = torch.utils.data.default_collate([test_set[idx] for idx in range(228)])
+                        # except:
+                        #     val_loader = iter(DataLoader(dataset = val_source_set, num_workers = opt.nThreads,\
+                        #             batch_size = 1, drop_last = True, shuffle = True))
+                        #     val_batch = next(val_loader)
 
                         val_input = {
                                 'img': val_batch["img"],
@@ -257,7 +267,7 @@ def main(_run, _config, _log):
 
                     if total_steps % opt.display_freq == 0:
                         val_viz = model.get_current_visuals_val()
-                        model.plot_image_in_tb(tb_writer, val_viz)
+                        # model.plot_image_in_tb(tb_writer, val_viz)
 
                         val_errors = model.get_current_errors_val()
                         model.track_scalar_in_tb(tb_writer, val_errors, total_steps)
