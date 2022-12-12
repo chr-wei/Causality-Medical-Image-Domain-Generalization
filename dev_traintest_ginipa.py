@@ -183,20 +183,20 @@ def main(_run, _config, _log):
         raise NotImplementedError(opt.data_name)
 
     print(f'Using TR domain {opt.tr_domain}; TE domain {opt.te_domain}')
-    train_loader = DataLoader(dataset = train_set, num_workers = 0,\
+    train_loader = DataLoader(dataset = train_set, num_workers = opt.nThreads,\
             batch_size = opt.batchSize, shuffle = True, drop_last = True, worker_init_fn = worker_init_fn, pin_memory = True)
 
     if len(val_source_set) > 0:
-        val_loader = iter(DataLoader(dataset = val_source_set, num_workers = 0,\
+        val_loader = iter(DataLoader(dataset = val_source_set, num_workers = opt.nThreads,\
                 batch_size = 1, shuffle = True, drop_last = True, pin_memory = True))
     else:
-        val_loader = iter(DataLoader(dataset = test_set, num_workers = 0,\
+        val_loader = iter(DataLoader(dataset = test_set, num_workers = opt.nThreads,\
                 batch_size = 1, shuffle = True, drop_last = True, pin_memory = True))
 
-    test_loader = DataLoader(dataset = test_set, num_workers = 0,\
+    test_loader = DataLoader(dataset = test_set, num_workers = opt.nThreads,\
             batch_size = 1, shuffle = False, pin_memory = True)
 
-    test_src_loader = DataLoader(dataset = test_source_set, num_workers = 0,\
+    test_src_loader = DataLoader(dataset = test_source_set, num_workers = opt.nThreads,\
             batch_size = 1, shuffle = False, pin_memory = True)
 
     if opt.exp_type == 'gin' or opt.exp_type == 'ginipa':
@@ -237,7 +237,8 @@ def main(_run, _config, _log):
 
                 ## display training losses
                 if total_steps % opt.display_freq == 0:
-                    tr_viz = model.get_current_visuals_tr()
+                    pass
+                    # tr_viz = model.get_current_visuals_tr()
                     # model.plot_image_in_tb(tb_writer, tr_viz)
 
                 if total_steps % opt.print_freq == 0:
@@ -331,7 +332,7 @@ if __name__ == "__main__":
         name='E3',
         exp_type='ginipa',
         load_dir='E3_sourceMR_efficient_b2_unet',
-        nThreads=1,
+        nThreads=8,
         model='efficient_b2_unet',
 
         print_freq=5000,     # visualizations

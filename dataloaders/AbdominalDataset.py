@@ -264,9 +264,10 @@ def get_test(modality, norm_func, tile_z_dim = 3, idx_pct = [0.7, 0.1, 0.2]):
         tile_z_dim = tile_z_dim)
 
 def get_test_all(modality, norm_func, tile_z_dim = 3, idx_pct = [0.7, 0.1, 0.2]):
-     return AbdominalDataset(idx_pct = idx_pct,\
+        # TODO test ts_func as transfroms again
+    return AbdominalDataset(idx_pct = idx_pct,\
         mode = 'test_all',\
-        transforms = ts_func,\
+        transforms = None,\
         domains = modality,\
         extern_norm_fn = norm_func,\
         base_dir = BASEDIR,\
