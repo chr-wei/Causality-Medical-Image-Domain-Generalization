@@ -404,6 +404,6 @@ if __name__ == "__main__":
             base_dir='./data/E4'
         )
     )
-    current_arg_dict = arg_dict_e3
+    current_arg_dict = arg_dict_e4
 
     r = ex.run(config_updates=current_arg_dict)
