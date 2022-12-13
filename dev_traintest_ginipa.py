@@ -381,6 +381,20 @@ if __name__ == "__main__":
         )
     )
 
+    arg_dict_e3_test = arg_dict.copy()
+    arg_dict_e3_test.update(
+        dict(
+            name='E3',
+            te_domain="targetCT",
+            tr_domain="sourceMR",
+            base_dir='./data/E3',
+            reload_model_fid='./checkpoints/CAUSALDG_E3/22/snapshots/latest_net_Seg.pth',
+            phase='test',
+            save_prediction=True,
+            checkpoints_dir='./checkpoints_test'
+        )
+    )
+
     arg_dict_e4 = arg_dict.copy()
     arg_dict_e4.update(
         dict(
@@ -390,6 +404,6 @@ if __name__ == "__main__":
             base_dir='./data/E4'
         )
     )
-    current_arg_dict = arg_dict_e4
+    current_arg_dict = arg_dict_e3_test
 
     r = ex.run(config_updates=current_arg_dict)
