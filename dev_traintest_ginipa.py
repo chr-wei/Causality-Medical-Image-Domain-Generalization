@@ -328,8 +328,9 @@ def main(_run, _config, _log):
         model.update_learning_rate()
 
 if __name__ == "__main__":
+
     arg_dict = dict(
-        name='E3',
+        # name='E3',
         exp_type='ginipa',
         load_dir='E3_sourceMR_efficient_b2_unet',
         nThreads=8,
@@ -358,8 +359,8 @@ if __name__ == "__main__":
         optimizer='adam',
         lr=0.0003,
         adam_weight_decay=0.00003,
-        te_domain="targetCT",
-        tr_domain="sourceMR",
+        # te_domain="targetCT",
+        # tr_domain="sourceMR",
 
         # blender config
         blend_grid_size=24, # 24 * 2 = 48, 1/4 of 192
@@ -367,7 +368,28 @@ if __name__ == "__main__":
         # validation fold
         nclass=5,
         consist_type='kld', # KL term
-        base_dir='./data/E3'
+        # base_dir='./data/E3'
     )
 
-    r = ex.run(config_updates=arg_dict)
+    arg_dict_e3 = arg_dict.copy()
+    arg_dict_e3.update(
+        dict(
+            name='E3',
+            te_domain="targetCT",
+            tr_domain="sourceMR",
+            base_dir='./data/E3'
+        )
+    )
+
+    arg_dict_e4 = arg_dict.copy()
+    arg_dict_e4.update(
+        dict(
+            name='E4',
+            tr_domain="sourceCT",
+            te_domain="targetMR",
+            base_dir='./data/E4'
+        )
+    )
+    current_arg_dict = arg_dict_e4
+
+    r = ex.run(config_updates=current_arg_dict)

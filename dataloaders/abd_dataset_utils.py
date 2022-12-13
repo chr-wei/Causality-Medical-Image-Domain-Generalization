@@ -62,7 +62,7 @@ def get_normalize_op(modality, fids):
 
         return CT_normalize #, {'mean': ct_mean, 'std': ct_std}
 
-    elif modality == 'targetCT':
+    elif modality == 'targetCT' or modality == 'sourceCT':
         ct_mean, ct_std = get_CT_statistics(fids)
 
         def CT_normalize(x_in):
@@ -73,7 +73,7 @@ def get_normalize_op(modality, fids):
 
         return CT_normalize
 
-    elif modality == 'sourceMR':
+    elif modality == 'sourceMR' or modality == 'targetMR':
         def MR_normalize(x_in):
             return (x_in - x_in.mean()) / x_in.std()
 
