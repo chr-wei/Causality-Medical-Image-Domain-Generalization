@@ -109,8 +109,8 @@ class AbdominalDataset(torch_data.Dataset):
             for curr_id in id_list:
                 curr_dict = {}
 
-                _img_fid = os.path.join(self._base_dir, _domain , 'processed_large_192_192_160'  ,f'image_{curr_id}.nii.gz')
-                _lb_fid  = os.path.join(self._base_dir, _domain , 'processed_large_192_192_160', f'label_{curr_id}.nii.gz')
+                _img_fid = os.path.join(self._base_dir, _domain , 'processed'  ,f'image_{curr_id}.nii.gz')
+                _lb_fid  = os.path.join(self._base_dir, _domain , 'processed', f'label_{curr_id}.nii.gz')
 
                 curr_dict["img_fid"] = _img_fid
                 curr_dict["lbs_fid"] = _lb_fid
