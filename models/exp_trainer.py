@@ -214,7 +214,7 @@ class ExperimentNet(BaseModel):
             if len(self.gpu_ids) > 0:
                 img_val = img_val.to('cuda')
                 mask_val = mask_val.to('cuda')
-                
+
             pred_val, _  = self.netSeg(img_val)
 
             # now calculating losses!
@@ -240,9 +240,14 @@ class ExperimentNet(BaseModel):
         for subnet in self.subnets:
             subnet.eval()
 
+        if len(self.gpu_ids) > 0:
+            device = 'cuda'
+        else:
+            device = 'cpu'
+
         with torch.no_grad():
-            img_val         = self.input_img
-            mask_val        = self.input_mask
+            img_val         = self.input_img.to(device)
+            mask_val        = self.input_mask.to(device)
             seg_val, _      = self.netSeg(img_val)
             if raw_logits != True:
                 seg_val = torch.argmax(seg_val, 1)

@@ -28,6 +28,11 @@ def prediction_wrapper(model, test_loader, opt, epoch, label_name, mode = 'base'
         test_loader:    DataLoader Dataloader for the dataset to test
         mode:           str Adding a note for the saved testing results
     """
+    if len(opt.gpu_ids) > 0:
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+        
     with torch.no_grad():
         out_prediction_list = {} # a buffer for saving results
         recomp_img_list = []
