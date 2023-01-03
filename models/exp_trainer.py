@@ -171,9 +171,13 @@ class ExperimentNet(BaseModel):
         input_img   = input['img']
         input_mask  = input['lb']
 
+        input_img = input_img.float()
+        input_mask = input_mask.float()
+
+
         if len(self.gpu_ids) > 0:
-            input_img = input_img.float()
-            input_mask = input_mask.float()
+            input_img = input_img.to('cuda')
+            input_mask = input_mask.to('cuda')
 
         # random no-linear augmentation
         self._nb_current = input_img.shape[0] # batch size of the current batch
@@ -206,6 +210,11 @@ class ExperimentNet(BaseModel):
         with torch.no_grad():
             img_val = self.input_img
             mask_val = self.input_mask
+
+            if len(self.gpu_ids) > 0:
+                img_val = img_val.to('cuda')
+                mask_val = mask_val.to('cuda')
+                
             pred_val, _  = self.netSeg(img_val)
 
             # now calculating losses!
