@@ -33,6 +33,4 @@ class EfficientUNet(torch.nn.Module):
             return masks, []
 
 def efficient_unet(nclass, in_channel, gpu_ids = [], return_feature = False, **kwargs):
-    return EfficientUNet(nclass=nclass, classifier = None, return_feature = return_feature, **kwargs).cuda(gpu_ids[0])
-
-
+    return EfficientUNet(nclass=nclass, classifier = None, return_feature = return_feature, **kwargs)

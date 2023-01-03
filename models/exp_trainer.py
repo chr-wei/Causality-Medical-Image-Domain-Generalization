@@ -26,18 +26,25 @@ class ExperimentNet(BaseModel):
     def set_networks(self, opt):
         self.n_cls = opt.nclass
         self.gpu_ids = opt.gpu_ids
+
+        if opt.gpu_ids:
+            device = torch.device('cuda')
+        else:
+            device = torch.device('cpu')
+
         if opt.model == 'efficient_b2_unet':
-            self.netSeg = efficient_unet(nclass = self.n_cls, in_channel = 3, gpu_ids = opt.gpu_ids)
+            self.netSeg = efficient_unet(nclass = self.n_cls, in_channel = 3, gpu_ids = opt.gpu_ids).to(device=device)
         else:
             raise NotImplementedError
 
         # auxillary nodes
-        self.onehot_node = segloss.One_Hot(self.n_cls)
+
+        self.onehot_node = segloss.One_Hot(self.n_cls, device=device)
         self.softmax_node = torch.nn.Softmax(dim = 1)
 
         # data augmentation nodes
         if opt.exp_type == 'gin':
-            self.img_transform_node = GINGroupConv(out_channel = opt.gin_out_nc, n_layer = opt.gin_nlayer, interm_channel = opt.gin_n_interm_ch, out_norm = opt.gin_norm).cuda()
+            self.img_transform_node = GINGroupConv(out_channel = opt.gin_out_nc, n_layer = opt.gin_nlayer, interm_channel = opt.gin_n_interm_ch, out_norm = opt.gin_norm).to(device=device)
         elif opt.exp_type == 'ginipa':
             # ipa
             blender_cofig = {
@@ -51,8 +58,8 @@ class ExperimentNet(BaseModel):
                     'space':'log'
                     }
 
-            self.img_transform_node = GINGroupConv(out_channel = opt.gin_out_nc, n_layer = opt.gin_nlayer, interm_channel = opt.gin_n_interm_ch, out_norm = opt.gin_norm).cuda()
-            self.blender_node       = AdvBias(blender_cofig) # IPA
+            self.img_transform_node = GINGroupConv(out_channel = opt.gin_out_nc, n_layer = opt.gin_nlayer, interm_channel = opt.gin_n_interm_ch, out_norm = opt.gin_norm).to(device=device)
+            self.blender_node       = AdvBias(blender_cofig).to(device=device) # IPA
             self.blender_node.init_parameters()
 
         else:
@@ -77,13 +84,13 @@ class ExperimentNet(BaseModel):
                     raise Exception('Cannot reload the model')
 
         ## define loss functions
-        self.criterionDice = segloss.SoftDiceLoss(self.n_cls).cuda(self.gpu_ids[0]) # soft dice loss
-        self.ScoreDice = segloss.SoftDiceScore(self.n_cls, ignore_chan0 = True).cuda(self.gpu_ids[0]) # dice score
-        self.ScoreDiceEval = segloss.Efficient_DiceScore(self.n_cls, ignore_chan0 = False).cuda(self.gpu_ids[0]) # for evaluation in 3D
+        self.criterionDice = segloss.SoftDiceLoss(self.n_cls) # soft dice loss
+        self.ScoreDice = segloss.SoftDiceScore(self.n_cls, ignore_chan0 = True) # dice score
+        self.ScoreDiceEval = segloss.Efficient_DiceScore(self.n_cls, ignore_chan0 = False) # for evaluation in 3D
 
         # using plain CE + Dice loss, not using WCE
         self.criterionWCE = segloss.My_CE(nclass = self.n_cls,\
-                batch_size = self.opt.batchSize, weight = torch.ones(self.n_cls,)).cuda(self.gpu_ids[0])
+                batch_size = self.opt.batchSize, weight = torch.ones(self.n_cls,))
 
         # consistency between conditional distributions
         if opt.consist_type == 'kld':
@@ -112,8 +119,8 @@ class ExperimentNet(BaseModel):
         # register subnets which require gradients
         self.subnets = [ self.netSeg ]
 
-        for subnet in self.subnets:
-            assert next(subnet.parameters()).is_cuda == True
+        # for subnet in self.subnets:
+        #     assert next(subnet.parameters()).is_cuda == True
         print('-----------------------------------------------')
 
     # bypass the appearance transforms
@@ -126,13 +133,13 @@ class ExperimentNet(BaseModel):
                 if input_img.ndims < 4:
                     input_img = input_img[np.newaxis, ...]
                 input_img = torch.FloatTensor(input_img, requires_grad = False).float()
-            input_img = input_img.cuda(self.gpu_ids[0])
+            input_img = input_img
 
             if not isinstance(input_mask, torch.FloatTensor):
                 if input_mask.ndims < 4:
                     input_mask = input_mask[np.newaxis, ...]
                 input_mask = torch.FloatTensor(input_mask, requires_grad = False).float()
-            input_mask = input_mask.cuda(self.gpu_ids[0])
+            input_mask = input_mask
 
         self.input_img = Variable(input_img)
         self.input_mask = input_mask
@@ -145,8 +152,8 @@ class ExperimentNet(BaseModel):
         input_mask = input['lb']
 
         if len(self.gpu_ids) > 0:
-            input_img = input_img.float().cuda(self.gpu_ids[0])
-            input_mask = input_mask.float().cuda(self.gpu_ids[0])
+            input_img = input_img.float()
+            input_mask = input_mask.float()
 
         # augment appearance
         self._nb_current = input_img.shape[0] # batch size of the current batch
@@ -165,8 +172,8 @@ class ExperimentNet(BaseModel):
         input_mask  = input['lb']
 
         if len(self.gpu_ids) > 0:
-            input_img = input_img.float().cuda(self.gpu_ids[0])
-            input_mask = input_mask.float().cuda(self.gpu_ids[0])
+            input_img = input_img.float()
+            input_mask = input_mask.float()
 
         # random no-linear augmentation
         self._nb_current = input_img.shape[0] # batch size of the current batch
@@ -177,7 +184,7 @@ class ExperimentNet(BaseModel):
         if 'ipa' in self.opt.exp_type:
 
             self.blender_node.init_parameters()
-            blend_mask = rescale_intensity(self.blender_node.bias_field).repeat(1,3,1,1)
+            blend_mask = rescale_intensity(self.blender_node.bias_field).repeat(1,3,1,1).to(input_buffer.device)
 
             # spatially-variable blending
             input_cp1 = input_buffer[: self._nb_current].clone().detach() * blend_mask + input_buffer[self._nb_current: self._nb_current * 2].clone().detach() * (1.0 - blend_mask)
@@ -246,8 +253,8 @@ class ExperimentNet(BaseModel):
 
         pred_all, aux_pred     = self.netSeg(input_img)
         pred = pred_all[: self._nb_current]
-        loss_dice   = self.criterionDice(input = pred, target = self.input_mask)
-        loss_wce    = self.criterionWCE(inputs = pred, targets = self.input_mask.long() )
+        loss_dice   = self.criterionDice(input = pred, target = self.input_mask.view(-1,self.opt.fineSize,self.opt.fineSize))
+        loss_wce    = self.criterionWCE(inputs = pred, targets = self.input_mask.view(-1,self.opt.fineSize,self.opt.fineSize).long() )
 
         self.seg_tr         = pred.detach()
         self.loss_seg       = (loss_dice * lambda_dice + loss_wce * lambda_wce) * lambda_Seg
@@ -376,4 +383,3 @@ def to01(x, by_channel = False):
         xmax = x.view(nb, nc, -1).max(dim = -1)[0].unsqueeze(-1).unsqueeze(-1).repeat(1,1,nh, nw)
         out = (x - xmin + 1e-5) / (xmax - xmin + 1e-5)
     return out
-

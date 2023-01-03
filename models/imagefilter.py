@@ -31,8 +31,8 @@ class GradlessGCReplayNonlinBlock(nn.Module):
 
         nb, nc, nx, ny = x_in.shape
 
-        ker = torch.randn([self.out_channel * nb, self.in_channel , k, k  ], requires_grad = self.requires_grad  ).cuda()
-        shift = torch.randn( [self.out_channel * nb, 1, 1 ], requires_grad = self.requires_grad  ).cuda() * 1.0
+        ker = torch.randn([self.out_channel * nb, self.in_channel , k, k  ], requires_grad = self.requires_grad  ).to(device=x_in.device)
+        shift = torch.randn( [self.out_channel * nb, 1, 1 ], requires_grad = self.requires_grad  ).to(device=x_in.device) * 1.0
 
         x_in = x_in.view(1, nb * nc, nx, ny)
         x_conv = F.conv2d(x_in, ker, stride =1, padding = k //2, dilation = 1, groups = nb )
@@ -57,14 +57,14 @@ class GINGroupConv(nn.Module):
         self.out_channel = out_channel
 
         self.layers.append(
-            GradlessGCReplayNonlinBlock(out_channel = interm_channel, in_channel = in_channel, scale_pool = scale_pool, layer_id = 0).cuda()
+            GradlessGCReplayNonlinBlock(out_channel = interm_channel, in_channel = in_channel, scale_pool = scale_pool, layer_id = 0)
                 )
         for ii in range(n_layer - 2):
             self.layers.append(
-            GradlessGCReplayNonlinBlock(out_channel = interm_channel, in_channel = interm_channel, scale_pool = scale_pool, layer_id = ii + 1).cuda()
+            GradlessGCReplayNonlinBlock(out_channel = interm_channel, in_channel = interm_channel, scale_pool = scale_pool, layer_id = ii + 1)
                 )
         self.layers.append(
-            GradlessGCReplayNonlinBlock(out_channel = out_channel, in_channel = interm_channel, scale_pool = scale_pool, layer_id = n_layer - 1, use_act = False).cuda()
+            GradlessGCReplayNonlinBlock(out_channel = out_channel, in_channel = interm_channel, scale_pool = scale_pool, layer_id = n_layer - 1, use_act = False)
                 )
 
         self.layers = nn.ModuleList(self.layers)
@@ -77,7 +77,7 @@ class GINGroupConv(nn.Module):
         nb, nc, nx, ny = x_in.shape
 
         alphas = torch.rand(nb)[:, None, None, None] # nb, 1, 1, 1
-        alphas = alphas.repeat(1, nc, 1, 1).cuda() # nb, nc, 1, 1
+        alphas = alphas.repeat(1, nc, 1, 1).to(device=x_in.device) # nb, nc, 1, 1
 
         x = self.layers[0](x_in)
         for blk in self.layers[1:]:
@@ -92,5 +92,3 @@ class GINGroupConv(nn.Module):
             mixed = mixed * (1.0 / (_self_frob + 1e-5 ) ) * _in_frob
 
         return mixed
-
-

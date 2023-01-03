@@ -10,10 +10,10 @@ import math
 
 
 class One_Hot(nn.Module):
-    def __init__(self, depth):
+    def __init__(self, depth, device='cuda'):
         super(One_Hot, self).__init__()
         self.depth = depth
-        self.ones = torch.eye(depth).cuda()
+        self.ones = torch.eye(depth).to(device=device)
 
     def forward(self, X_in):
         """
@@ -24,7 +24,7 @@ class One_Hot(nn.Module):
         output_size = X_in.size() + torch.Size([self.depth]) #[nb/nx/nz, ...., nc]
         num_element = X_in.numel()
         X_in = X_in.data.long().view(num_element)
-        out = Variable(self.ones.index_select(0, X_in)).view(output_size)
+        out = Variable(self.ones.to(X_in.device).index_select(0, X_in)).view(output_size)
         if n_dim > 1:
             return out.permute(0, -1, *range(1, n_dim)).squeeze(dim=2).float() # [nb/nx/n\, nc, ny]
         else:
@@ -206,10 +206,9 @@ class My_CE(nn.CrossEntropyLoss):
     def forward(self, inputs, targets, eps = 0.01):
         #target = targets.contiguous().view(batch_size, -1)
         if not isinstance(targets, torch.LongTensor):
-            #targets = targets.LongTensor().cuda()
+            #targets = targets.LongTensor().to(device=device)
             targets = torch.squeeze(targets, 1)
-            targets = targets.cuda()
+            targets = targets.to(device=inputs.device)
         out = super(My_CE, self).forward(inputs, targets)
 
         return out
-

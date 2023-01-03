@@ -27,8 +27,8 @@ class GradlessGCReplayNonlinBlock3D(nn.Module):
 
         nb, nc, nx, ny, nz = x_in.shape
 
-        ker = torch.randn([self.out_channel * nb, self.in_channel , k, k, k  ], requires_grad = self.requires_grad  ).cuda()
-        shift = torch.randn( [self.out_channel * nb, 1, 1, 1 ], requires_grad = self.requires_grad  ).cuda() * 1.0
+        ker = torch.randn([self.out_channel * nb, self.in_channel , k, k, k  ], requires_grad = self.requires_grad  ).to(device=device)
+        shift = torch.randn( [self.out_channel * nb, 1, 1, 1 ], requires_grad = self.requires_grad  ).to(device=device) * 1.0
 
         x_in = x_in.view(1, nb * nc, nx, ny, nz)
         x_conv = F.conv3d(x_in, ker, stride =1, padding = k // 2, dilation = 1, groups = nb )
@@ -52,14 +52,14 @@ class GINGroupConv3D(nn.Module):
         self.out_channel = out_channel
 
         self.layers.append(
-            GradlessGCReplayNonlinBlock3D(out_channel = interm_channel, in_channel = in_channel, scale_pool = scale_pool, init_scale = init_scale, layer_id = 0).cuda()
+            GradlessGCReplayNonlinBlock3D(out_channel = interm_channel, in_channel = in_channel, scale_pool = scale_pool, init_scale = init_scale, layer_id = 0).to(device=device)
                 )
         for ii in range(n_layer - 2):
             self.layers.append(
-            GradlessGCReplayNonlinBlock3D(out_channel = interm_channel, in_channel = interm_channel, scale_pool = scale_pool, init_scale = init_scale,layer_id = ii + 1).cuda()
+            GradlessGCReplayNonlinBlock3D(out_channel = interm_channel, in_channel = interm_channel, scale_pool = scale_pool, init_scale = init_scale,layer_id = ii + 1).to(device=device)
                 )
         self.layers.append(
-            GradlessGCReplayNonlinBlock3D(out_channel = out_channel, in_channel = interm_channel, scale_pool = scale_pool, init_scale = init_scale, layer_id = n_layer - 1, use_act = False).cuda()
+            GradlessGCReplayNonlinBlock3D(out_channel = out_channel, in_channel = interm_channel, scale_pool = scale_pool, init_scale = init_scale, layer_id = n_layer - 1, use_act = False).to(device=device)
                 )
 
         self.layers = nn.ModuleList(self.layers)
@@ -72,7 +72,7 @@ class GINGroupConv3D(nn.Module):
         nb, nc, nx, ny, nz = x_in.shape
 
         alphas = torch.rand(nb)[:, None, None, None, None] # nb, 1, 1, 1, 1
-        alphas = alphas.repeat(1, nc, 1, 1, 1).cuda() # nb, nc, 1, 1
+        alphas = alphas.repeat(1, nc, 1, 1, 1).to(device=device) # nb, nc, 1, 1
 
         x = self.layers[0](x_in)
         for blk in self.layers[1:]:
@@ -92,8 +92,8 @@ class GINGroupConv3D(nn.Module):
 '''
 if __name__ == '__main__':
     from pdb import set_trace
-    xin = torch.rand([5, 3, 64, 64, 32]).cuda()
-    augmenter = GINGroupConv3D().cuda()
+    xin = torch.rand([5, 3, 64, 64, 32]).to(device=device)
+    augmenter = GINGroupConv3D().to(device=device)
     out = augmenter(xin)
     set_trace()
     print(out.shape)

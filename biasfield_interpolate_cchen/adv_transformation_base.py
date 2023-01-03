@@ -129,7 +129,7 @@ class AdvTransformBase(torch.nn.Module):
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    images = torch.zeros((10,1)).cuda()
+    images = torch.zeros((10,1)).to(device=device)
     # images[:,:,4:12,4:12]=1
     print ('input:',images)
     augmentor= AdvTransformBase(config_dict={'size':1,
@@ -142,4 +142,3 @@ if __name__ == "__main__":
     recovered = augmentor.backward(transformed)
     # error = recovered-images
     # print ('sum error', torch.sum(error))
-

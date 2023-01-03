@@ -43,7 +43,7 @@ class AbdominalDataset(torch_data.Dataset):
 
         self.img_pids = {}
         for _domain in self.domains: # load file names
-            self.img_pids[_domain] = sorted([ fid.split("_")[-1].split(".nii.gz")[0] for fid in glob.glob(self._base_dir + "/" +  _domain  + "/processed/image_*.nii.gz") ], key = lambda x: int(x))
+            self.img_pids[_domain] = sorted([ fid.split("_")[-1].split(".nii.gz")[0] for fid in glob.glob(self._base_dir + "/" +  _domain  + "/processed_large_192_192_160/image_*.nii.gz") ], key = lambda x: int(x))
 
         self.scan_ids = self.__get_scanids(mode, idx_pct) # train val test split in terms of patient ids
 
@@ -109,8 +109,8 @@ class AbdominalDataset(torch_data.Dataset):
             for curr_id in id_list:
                 curr_dict = {}
 
-                _img_fid = os.path.join(self._base_dir, _domain , 'processed'  ,f'image_{curr_id}.nii.gz')
-                _lb_fid  = os.path.join(self._base_dir, _domain , 'processed', f'label_{curr_id}.nii.gz')
+                _img_fid = os.path.join(self._base_dir, _domain , 'processed_large_192_192_160'  ,f'image_{curr_id}.nii.gz')
+                _lb_fid  = os.path.join(self._base_dir, _domain , 'processed_large_192_192_160', f'label_{curr_id}.nii.gz')
 
                 curr_dict["img_fid"] = _img_fid
                 curr_dict["lbs_fid"] = _lb_fid

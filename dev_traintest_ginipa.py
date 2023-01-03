@@ -40,8 +40,8 @@ def prediction_wrapper(model, test_loader, opt, epoch, label_name, mode = 'base'
 
                 nframe = batch['nframe']
                 nb, nc, nx, ny = batch['img'].shape
-                curr_pred = torch.Tensor(np.zeros( [ nframe,  nx, ny]  )).cuda() # nb/nz, nc, nx, ny
-                curr_gth = torch.Tensor(np.zeros( [nframe,  nx, ny]  )).cuda()
+                curr_pred = torch.Tensor(np.zeros( [ nframe,  nx, ny]  )).to(device=device) # nb/nz, nc, nx, ny
+                curr_gth = torch.Tensor(np.zeros( [nframe,  nx, ny]  )).to(device=device)
                 curr_img = np.zeros( [nx, ny, nframe]  )
 
             assert batch['lb'].shape[0] == 1 # enforce a batchsize of 1
@@ -210,6 +210,12 @@ def main(_run, _config, _log):
         opt.epoch_count = 0
         opt.niter = 0
         opt.niter_decay = 0
+
+    if len(opt.gpu_ids) > 0:
+        device  = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
+
     for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
         epoch_start_time = time.time()
         iter_data_time = time.time()
@@ -228,8 +234,8 @@ def main(_run, _config, _log):
                 if train_batch["img"].shape[0] != opt.batchSize:
                     continue
 
-                train_input = {'img': train_batch["img"],
-                               'lb': train_batch["lb"]}
+                train_input = {'img': train_batch["img"].to(device),
+                               'lb': train_batch["lb"].to(device)}
 
                 ## run a training step
                 model.set_input_aug_sup(train_input)
@@ -404,6 +410,19 @@ if __name__ == "__main__":
             base_dir='./data/E4'
         )
     )
-    current_arg_dict = arg_dict_e4
+    arg_dict_e4_test = arg_dict.copy()
+    arg_dict_e4_test.update(
+        dict(
+            name='E3',
+            tr_domain="sourceCT",
+            te_domain="targetMR",
+            base_dir='./data/E4',
+            reload_model_fid='./checkpoints/CAUSALDG_E4/8/snapshots/latest_net_Seg.pth',
+            phase='test',
+            save_prediction=True,
+            checkpoints_dir='./checkpoints_test'
+        )
+    )
 
+    current_arg_dict = arg_dict_e3
     r = ex.run(config_updates=current_arg_dict)

@@ -8,7 +8,7 @@ from .adv_transformation_base import AdvTransformBase
 from .utils import rescale_intensity
 from pdb import set_trace
 
-def bspline_kernel_2d(sigma=[1, 1], order=2, asTensor=False, dtype=torch.float32, device='gpu'):
+def bspline_kernel_2d(sigma=[1, 1], order=2, asTensor=False, dtype=torch.float32):
     '''
     generate bspline 2D kernel matrix.
     From wiki: https://en.wikipedia.org/wiki/B-spline, Fast b-spline interpolation on a uniform sample domain can be
@@ -28,7 +28,7 @@ def bspline_kernel_2d(sigma=[1, 1], order=2, asTensor=False, dtype=torch.float32
         kernel = F.conv2d(kernel, kernel_ones, padding=(i * padding).tolist()) / ((sigma[0] * sigma[1]))
 
     if asTensor:
-        return kernel[0, 0, ...].to(dtype=dtype, device=device)
+        return kernel[0, 0, ...].to(dtype=dtype)
     else:
         return kernel[0, 0, ...].numpy()
 
@@ -73,7 +73,7 @@ class AdvBias(AdvTransformBase):
         return random transformaion parameters
         '''
         self.init_config(self.config_dict)
-        self._device = 'cuda' if self.use_gpu else 'cpu'
+        # self._device = 'cuda' if self.use_gpu else 'cpu'
 
         self._dim = len(self.control_point_spacing)
         self.spacing =  self.control_point_spacing
@@ -216,7 +216,7 @@ https://github.com/airlab-unibas/airlab/blob/1a715766e17c812803624d95196092291fa
 
         self.param = self.unit_normalize(self.param, p_type ='l2')
 
-        self.param = self.param.to(dtype=self._dtype, device=self._device)
+        self.param = self.param.to(dtype=self._dtype)
 
         # convert to integer
         self._stride = self._stride.astype(dtype=int).tolist()
@@ -324,11 +324,11 @@ https://github.com/airlab-unibas/airlab/blob/1a715766e17c812803624d95196092291fa
         :param spacing tuple of int: spacing between control points along h and w.
         :return:  kernel matrix
         '''
-        self._kernel = bspline_kernel_2d(spacing, order=order, asTensor=True, dtype=self._dtype, device=self._device)
+        self._kernel = bspline_kernel_2d(spacing, order=order, asTensor=True, dtype=self._dtype)
         self._padding = (np.array(self._kernel.size()) - 1) / 2
         self._padding = self._padding.astype(dtype=int).tolist()
         self._kernel.unsqueeze_(0).unsqueeze_(0)
-        self._kernel = self._kernel.to(dtype=self._dtype, device=self._device)
+        self._kernel = self._kernel.to(dtype=self._dtype)
         return self._kernel
     def get_name(self):
         return 'bias'
@@ -340,7 +340,7 @@ if __name__ == "__main__":
     from utils import check_dir
     log_dir = "./result/log/debug/"
     check_dir(log_dir, create=True)
-    images = torch.ones(2,1,128,128).cuda()
+    images = torch.ones(2,1,128,128).to(device=device)
     images[:,:,::2,::2]=2.0
     images[:,:,::3,::3]=3.0
     images[:,:,::1,::1]=1.0
@@ -362,6 +362,3 @@ if __name__ == "__main__":
     plt.subplot(133)
     plt.imshow((transformed/images).detach().cpu().numpy()[0,0])
     plt.savefig('test_bias.png')
-
-
-
