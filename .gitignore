@@ -1,4 +1,13 @@
-data/**/*
+data/abdominal/*
+data/prostate/*
+data/E1/**
+!data/E1/README.md
+data/E2/**
+!data/E2/README.md
+data/E3/**
+!data/E3/README.md
+data/E4/**
+!data/E4/README.md
 checkpoints/**/*
 checkpoints_test/**/*
 __pycache__/**/*
